@@ -39,7 +39,7 @@ import stat
 import time
 import traceback
 import warnings
-from io import StringIO
+from io import StringIO, IOBase
 from decimal import Decimal
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -548,7 +548,7 @@ class WebClient(object):
         boundary = choose_boundary()
         buf = StringIO()
         for key, value in list(vars.items()):
-            if not isinstance(value, file):
+            if not isinstance(value, IOBase):
                 buf.write("--%s\r\n" % boundary)
                 buf.write('Content-Disposition: form-data; name="%s"' % key)
                 buf.write("\r\n\r\n" + value + "\r\n")
@@ -576,8 +576,8 @@ class WebClient(object):
         "Perform a GET/POST request and return the response"
 
         location = self.location
-        if isinstance(location, str):
-            location = location.encode("utf8")
+        # if isinstance(location, str):
+        #     location = location.encode("utf8")
         # extend the base URI with additional components
         if args:
             location += "/".join(args)
