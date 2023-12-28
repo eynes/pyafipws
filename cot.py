@@ -119,7 +119,7 @@ class COT(object):
                 self.CodigoError = str(self.xml.codigoError)
                 self.MensajeError = (
                     str(self.xml.mensajeError)
-                    .decode("latin1")
+                    # .decode("latin1")
                     .encode("ascii", "replace")
                 )
             if "cuitEmpresa" in self.xml:
@@ -145,7 +145,7 @@ class COT(object):
                                     (
                                         str(error.codigo),
                                         str(error.descripcion)
-                                        .decode("latin1")
+                                        # .decode("latin1")
                                         .encode("ascii", "replace"),
                                     )
                                 )
@@ -163,7 +163,7 @@ class COT(object):
                     sys.exc_info()[0], sys.exc_info()[1]
                 )[0]
             except:
-                self.Excepcion = u"<no disponible>"
+                self.Excepcion = "<no disponible>"
             return False
 
     def LeerValidacionRemito(self, pop=True):
@@ -206,7 +206,7 @@ class COT(object):
             self.xml = SimpleXMLElement(xml)
             return True
         except Exception as e:
-            self.Excepcion = u"%s" % (e)
+            self.Excepcion = "%s" % (e)
             return False
 
     def ObtenerTagXml(self, *tags):
@@ -221,7 +221,7 @@ class COT(object):
                 # vuelvo a convertir a string el objeto xml encontrado
                 return str(xml)
         except Exception as e:
-            self.Excepcion = u"%s" % (e)
+            self.Excepcion = "%s" % (e)
 
 
 # busco el directorio de instalación (global para que no cambie si usan otra dll)
