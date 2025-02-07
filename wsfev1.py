@@ -10,12 +10,12 @@
 # or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
 # for more details.
 
-"""Módulo para obtener CAE/CAEA, código de autorización electrónico webservice 
+"""Módulo para obtener CAE/CAEA, código de autorización electrónico webservice
 WSFEv1 de AFIP (Factura Electrónica Nacional - Proyecto Version 1 - 2.13)
-Según RG 2485/08, RG 2757/2010, RG 2904/2010 y RG2926/10 (CAE anticipado), 
-RG 3067/2011 (RS - Monotributo), RG 3571/2013 (Responsables inscriptos IVA), 
+Según RG 2485/08, RG 2757/2010, RG 2904/2010 y RG2926/10 (CAE anticipado),
+RG 3067/2011 (RS - Monotributo), RG 3571/2013 (Responsables inscriptos IVA),
 RG 3668/2014 (Factura A IVA F.8001), RG 3749/2015 (R.I. y exentos)
-RG 4004-E Alquiler de inmuebles con destino casa habitación).  
+RG 4004-E Alquiler de inmuebles con destino casa habitación).
 RG 4109-E Venta de bienes muebles registrables.
 RG 4291/2018 Régimen especial de emisión y almacenamiento electrónico
 RG 4367/2018 Régimen de Facturas de Crédito Electrónicas MiPyMEs Ley 27.440
@@ -82,6 +82,7 @@ class WSFEv1(BaseWS):
         "ParamGetCotizacion",
         "ParamGetPtosVenta",
         "ParamGetActividades",
+        "ParamGetCondIVAReceptor",
         "AnalizarXml",
         "ObtenerTagXml",
         "LoadTestXML",
@@ -220,6 +221,7 @@ class WSFEv1(BaseWS):
         fecha_serv_hasta=None,  # --
         moneda_id="PES",
         moneda_ctz="1.0000",
+        cond_iva_receptor=1,
         caea=None,
         fecha_hs_gen=None,
         **kwargs
@@ -243,6 +245,7 @@ class WSFEv1(BaseWS):
             "fecha_venc_pago": fecha_venc_pago,
             "moneda_id": moneda_id,
             "moneda_ctz": moneda_ctz,
+            "cond_iva_receptor": cond_iva_receptor,
             "concepto": concepto,
             "fecha_hs_gen": fecha_hs_gen,
             "cbtes_asoc": [],
@@ -269,6 +272,7 @@ class WSFEv1(BaseWS):
             "caea",
             "fch_venc_cae",
             "fecha_hs_gen",
+            "cond_iva_receptor"
         ):
             self.factura[campo] = valor
             return True
@@ -384,6 +388,7 @@ class WSFEv1(BaseWS):
                             "FchVtoPago": f.get("fecha_venc_pago"),
                             "MonId": f["moneda_id"],
                             "MonCotiz": f["moneda_ctz"],
+                            "CondicionIVAReceptorId": f["cond_iva_receptor"],
                             "PeriodoAsoc": {
                                 "FchDesde": f["periodo_cbtes_asoc"].get("fecha_desde"),
                                 "FchHasta": f["periodo_cbtes_asoc"].get("fecha_hasta"),
@@ -572,6 +577,7 @@ class WSFEv1(BaseWS):
                     "FchVtoPago": f.get("fecha_venc_pago"),
                     "MonId": f["moneda_id"],
                     "MonCotiz": float(f["moneda_ctz"]),
+                    "CondicionIVAReceptorId": float(f["cond_iva_receptor"]),
                     "CbtesAsoc": [
                         {
                             "CbteAsoc": {
@@ -665,6 +671,7 @@ class WSFEv1(BaseWS):
                     "fecha_venc_pago": resultget.get("FchVtoPago"),
                     "moneda_id": resultget.get("MonId"),
                     "moneda_ctz": resultget.get("MonCotiz"),
+                    "cond_iva_receptor": resultget.get("CondicionIVAReceptorId"),
                     "cbtes_asoc": [
                         {
                             "tipo": cbte_asoc["CbteAsoc"]["Tipo"],
@@ -802,6 +809,7 @@ class WSFEv1(BaseWS):
                             "FchVtoPago": f.get("fecha_venc_pago"),
                             "MonId": f["moneda_id"],
                             "MonCotiz": f["moneda_ctz"],
+                            "CondicionIVAReceptorId": f["cond_iva_receptor"],
                             "PeriodoAsoc": {
                                 "FchDesde": f["periodo_cbtes_asoc"].get("fecha_desde"),
                                 "FchHasta": f["periodo_cbtes_asoc"].get("fecha_hasta"),
@@ -1031,6 +1039,7 @@ class WSFEv1(BaseWS):
                             "FchVtoPago": f.get("fecha_venc_pago"),
                             "MonId": f["moneda_id"],
                             "MonCotiz": f["moneda_ctz"],
+                            "CondicionIVAReceptorId": f["cond_iva_receptor"],
                             "PeriodoAsoc": {
                                 "FchDesde": f["periodo_cbtes_asoc"].get("fecha_desde"),
                                 "FchHasta": f["periodo_cbtes_asoc"].get("fecha_hasta"),
@@ -1312,6 +1321,17 @@ class WSFEv1(BaseWS):
             for p in res["ResultGet"]
         ]
 
+    @inicializar_y_capturar_excepciones
+    def ParamGetCondIVAReceptor(self, sep="|"):
+        "Recuperador de situación IVA del receptor del comprobante"
+        ret = self.client.FEParamGetCondicionIvaReceptor(
+            Auth={"Token": self.Token, "Sign": self.Sign, "Cuit": self.Cuit},
+        )
+        res = ret["FEParamGetCondicionIvaReceptorResult"]
+        return [
+            ("%(Id)s\t%(Desc)s\t%(Cmp_Clase)s" % p["CondicionIvaReceptor"]).replace("\t", sep)
+            for p in res["ResultGet"]
+        ]
 
 def p_assert_eq(a, b):
     print(a, a == b and "==" or "!=", b)
