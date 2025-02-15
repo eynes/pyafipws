@@ -34,7 +34,6 @@ __license__ = "LGPL-3.0-or-later"
 __version__ = "3.27c"
 
 import datetime
-import decimal
 import os
 import sys
 from pyafipws.utils import verifica, inicializar_y_capturar_excepciones, BaseWS, get_install_dir
@@ -221,6 +220,7 @@ class WSFEv1(BaseWS):
         fecha_serv_hasta=None,  # --
         moneda_id="PES",
         moneda_ctz="1.0000",
+        cancela_misma_mon_ext="",
         cond_iva_receptor=1,
         caea=None,
         fecha_hs_gen=None,
@@ -245,6 +245,7 @@ class WSFEv1(BaseWS):
             "fecha_venc_pago": fecha_venc_pago,
             "moneda_id": moneda_id,
             "moneda_ctz": moneda_ctz,
+            "cancela_misma_mon_ext": cancela_misma_mon_ext,
             "cond_iva_receptor": cond_iva_receptor,
             "concepto": concepto,
             "fecha_hs_gen": fecha_hs_gen,
@@ -388,6 +389,7 @@ class WSFEv1(BaseWS):
                             "FchVtoPago": f.get("fecha_venc_pago"),
                             "MonId": f["moneda_id"],
                             "MonCotiz": f["moneda_ctz"],
+                            "CanMisMonExt": f["cancela_misma_mon_ext"] if f["moneda_id"] != "PES" else None,
                             "CondicionIVAReceptorId": f["cond_iva_receptor"],
                             "PeriodoAsoc": {
                                 "FchDesde": f["periodo_cbtes_asoc"].get("fecha_desde"),
@@ -577,6 +579,7 @@ class WSFEv1(BaseWS):
                     "FchVtoPago": f.get("fecha_venc_pago"),
                     "MonId": f["moneda_id"],
                     "MonCotiz": float(f["moneda_ctz"]),
+                    "CanMisMonExt": f["cancela_misma_mon_ext"] if f["moneda_id"] != "PES" else None,
                     "CondicionIVAReceptorId": float(f["cond_iva_receptor"]),
                     "CbtesAsoc": [
                         {
@@ -671,6 +674,7 @@ class WSFEv1(BaseWS):
                     "fecha_venc_pago": resultget.get("FchVtoPago"),
                     "moneda_id": resultget.get("MonId"),
                     "moneda_ctz": resultget.get("MonCotiz"),
+                    "cancela_misma_mon_ext": resultget.get("CanMisMonExt"),
                     "cond_iva_receptor": resultget.get("CondicionIVAReceptorId"),
                     "cbtes_asoc": [
                         {
@@ -809,6 +813,7 @@ class WSFEv1(BaseWS):
                             "FchVtoPago": f.get("fecha_venc_pago"),
                             "MonId": f["moneda_id"],
                             "MonCotiz": f["moneda_ctz"],
+                            "CanMisMonExt": f["cancela_misma_mon_ext"] if f["moneda_id"] != "PES" else False,
                             "CondicionIVAReceptorId": f["cond_iva_receptor"],
                             "PeriodoAsoc": {
                                 "FchDesde": f["periodo_cbtes_asoc"].get("fecha_desde"),
@@ -1039,6 +1044,7 @@ class WSFEv1(BaseWS):
                             "FchVtoPago": f.get("fecha_venc_pago"),
                             "MonId": f["moneda_id"],
                             "MonCotiz": f["moneda_ctz"],
+                            "CanMisMonExt": f["cancela_misma_mon_ext"] if f["moneda_id"] != "PES" else False,
                             "CondicionIVAReceptorId": f["cond_iva_receptor"],
                             "PeriodoAsoc": {
                                 "FchDesde": f["periodo_cbtes_asoc"].get("fecha_desde"),
@@ -1322,16 +1328,23 @@ class WSFEv1(BaseWS):
         ]
 
     @inicializar_y_capturar_excepciones
-    def ParamGetCondIVAReceptor(self, sep="|"):
-        "Recuperador de situación IVA del receptor del comprobante"
-        ret = self.client.FEParamGetCondicionIvaReceptor(
-            Auth={"Token": self.Token, "Sign": self.Sign, "Cuit": self.Cuit},
-        )
-        res = ret["FEParamGetCondicionIvaReceptorResult"]
-        return [
-            ("%(Id)s\t%(Desc)s\t%(Cmp_Clase)s" % p["CondicionIvaReceptor"]).replace("\t", sep)
-            for p in res["ResultGet"]
-        ]
+    def FEParamGetCotizacion(self, mon_id, fecha=False):
+        "Recuperador de la cotización de moneda"
+        if fecha:
+            ret = self.client.FEParamGetCotizacion(
+                Auth={"Token": self.Token, "Sign": self.Sign, "Cuit": self.Cuit},
+                MonId=mon_id,
+                FchCotiz=fecha,
+            )
+        else:
+            ret = self.client.FEParamGetCotizacion(
+                Auth={"Token": self.Token, "Sign": self.Sign, "Cuit": self.Cuit},
+                MonId=mon_id,
+            )
+        result = ret.get("FEParamGetCotizacionResult", {})
+        cotizacion = result.get("ResultGet", {})
+        self.__analizar_errores(result)
+        return cotizacion
 
 def p_assert_eq(a, b):
     print(a, a == b and "==" or "!=", b)
